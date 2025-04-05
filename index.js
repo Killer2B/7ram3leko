@@ -1,4 +1,4 @@
-// ✅ البوت النهائي مع كل المزايا + تطور تدريجي ذكي حتى قتل التنين + صناديق + دفاع عن النفس + احتراف + بناء بيت + نوم + نذر + تفاعل + تعدين ذكي + ذكاء بيئي + زراعة + بوابة Nether + إدارة موارد + دخول End + صيد + فرن + تجارة مع القرويين + سرير تلقائي + محادثة عربية ذكية (مئات الأوامر) + تعلم ذاتي + مذكرات + تطور لنيذر رايت
+// ✅ البوت النهائي مع كل المزايا + تطور تدريجي ذكي حتى قتل التنين + صناديق + دفاع عن النفس + احتراف + بناء بيت + نوم + نذر + تفاعل + تعدين ذكي + ذكاء بيئي + زراعة + بوابة Nether + إدارة موارد + دخول End + صيد + فرن + تجارة مع القرويين + سرير تلقائي + محادثة عربية ذكية (مئات الأوامر) + تعلم ذاتي + مذكرات + تطور لنيذر رايت + حماية من الأخطاء
 
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
@@ -17,7 +17,7 @@ const botOptions = {
   port: 13246,
   username: 'Wikko',
   auth: 'offline',
-  version: false
+  version: '1.19.4' // ← حدد إصدار الخادم بدقة لتفادي مشاكل VarInt
 };
 
 let bot;
@@ -74,7 +74,13 @@ function createBot() {
     setTimeout(createBot, reconnectDelay);
   });
 
-  bot.on('error', (err) => console.log('❌ Error:', err));
+  bot.on('error', (err) => {
+    if (err.name === 'PartialReadError') {
+      console.warn('⚠️ تم تجاهل PartialReadError لتفادي توقف البوت.');
+    } else {
+      console.log('❌ Error:', err);
+    }
+  });
 
   bot.on('death', () => {
     deathCount++;
@@ -109,36 +115,40 @@ function evolveBot() {
   let stage = 0;
   setInterval(async () => {
     logDiary('المرحلة الحالية: ' + stage);
-    switch (stage) {
-      case 0:
-        await collectBlocks(['oak_log', 'birch_log']);
-        await mineUnderground();
-        break;
-      case 1:
-        await craftTools();
-        break;
-      case 2:
-        await createBedIfNotFound();
-        await sleepIfNight();
-        break;
-      case 3:
-        exploreRandomly();
-        await buildChest();
-        await buildSimpleHouse();
-        await manageChest();
-        await autoFarm();
-        break;
-      case 4:
-        await prepareForEnderDragon();
-        break;
-      case 5:
-        await mineToDiamond();
-        await buildNetherPortalAndEnter();
-        await mineNetheriteAndUpgrade();
-        break;
+    try {
+      switch (stage) {
+        case 0:
+          await collectBlocks(['oak_log', 'birch_log']);
+          await mineUnderground();
+          break;
+        case 1:
+          await craftTools();
+          break;
+        case 2:
+          await createBedIfNotFound();
+          await sleepIfNight();
+          break;
+        case 3:
+          exploreRandomly();
+          await buildChest();
+          await buildSimpleHouse();
+          await manageChest();
+          await autoFarm();
+          break;
+        case 4:
+          await prepareForEnderDragon();
+          break;
+        case 5:
+          await mineToDiamond();
+          await buildNetherPortalAndEnter();
+          await mineNetheriteAndUpgrade();
+          break;
+      }
+      stage = (stage + 1) % 6;
+      saveMemory();
+    } catch (err) {
+      console.warn('⚠️ خطأ أثناء تنفيذ المرحلة:', err.message);
     }
-    stage = (stage + 1) % 6;
-    saveMemory();
   }, 30000);
 }
 
