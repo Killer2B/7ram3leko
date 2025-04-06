@@ -11,10 +11,15 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is alive'));
 app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
 
+// Prevent Railway from sleeping
+setInterval(() => {
+  require('http').get(`http://localhost:${PORT}`);
+}, 1000 * 60 * 4); // كل 4 دقايق
+
 const botOptions = {
   host: 'X234.aternos.me',
   port: 13246,
-  username: 'Wikko', // اسم ثابت لتقليل الشك بأنه بوت
+  username: 'Wikko',
   auth: 'offline',
   version: false
 };
@@ -64,8 +69,9 @@ function exploreRandomly() {
   const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10);
   const y = bot.entity.position.y;
   addTask(async () => {
-    bot.chat('أستكشف المنطقة...');
     await bot.pathfinder.goto(new GoalBlock(x, y, z));
+    bot.chat('أتحرك عشوائيًا...');
+    await wait(1000 + Math.random() * 2000);
   });
 }
 
@@ -75,6 +81,7 @@ async function evolveBot() {
   const hasWood = inventory.includes('oak_log') || inventory.some(i => i.includes('_log'));
   const hasCraftingTable = inventory.includes('crafting_table');
   const hasPickaxe = inventory.some(i => i.includes('pickaxe'));
+
   const wood = bot.findBlock({
     matching: block => block && block.name.includes('_log'),
     maxDistance: 32
@@ -84,12 +91,12 @@ async function evolveBot() {
     addTask(async () => {
       bot.chat('أبحث عن خشب...');
       await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z));
+      await wait(1000 + Math.random() * 2000);
       await bot.dig(wood);
     });
-    return;
-  }
-
-  if (hasWood && !hasCraftingTable) {
+  } else if (!hasWood) {
+    exploreRandomly();
+  } else if (hasWood && !hasCraftingTable) {
     const recipe = mcData.recipes.craftingTable?.[0];
     if (recipe) {
       addTask(async () => {
@@ -97,10 +104,7 @@ async function evolveBot() {
         await bot.craft(recipe, 1, null);
       });
     }
-    return;
-  }
-
-  if (hasWood && hasCraftingTable && !hasPickaxe) {
+  } else if (hasWood && hasCraftingTable && !hasPickaxe) {
     const stone = bot.findBlock({
       matching: block => mcData.blocks[block.type].name === 'stone',
       maxDistance: 32
@@ -111,11 +115,14 @@ async function evolveBot() {
         await bot.pathfinder.goto(new GoalBlock(stone.position.x, stone.position.y, stone.position.z));
       });
     }
-    return;
+  } else {
+    bot.chat('✅ مستعد لمهام جديدة!');
+    exploreRandomly();
   }
+}
 
-  bot.chat('✅ مستعد لمهام جديدة!');
-  exploreRandomly();
+function wait(ms) {
+  return new Promise(res => setTimeout(res, ms));
 }
 
 function createBot() {
@@ -161,7 +168,7 @@ function createBot() {
   bot.on('death', () => {
     deathCount++;
     logDiary('مات البوت. عدد الوفيات: ' + deathCount);
-    if (deathCount >= 3) bot.chat('أتعلم من أخطائي');
+    bot.emit('respawn');
   });
 
   bot.on('kicked', (reason) => {
