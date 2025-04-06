@@ -1,4 +1,4 @@
-// ✅ البوت الكامل الاحترافي: تطور تدريجي + أدوات + ذكاء اصطناعي شامل
+// ✅ البوت الكامل الاحترافي: تطور تدريجي + أدوات + ذكاء اصطناعي شامل + مهام واقعية
 
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
@@ -42,24 +42,57 @@ function saveMemory() {
   fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
 }
 
-function evolveBot() {
+async function evolveBot() {
   if (!bot.chat || typeof bot.chat !== 'function') return;
-  bot.chat('🚀 بدء التطور الذكي!');
-  const mcData = require('minecraft-data')(bot.version);
 
-  const wood = bot.findBlock({
-    matching: block => block && block.name.includes('_log'),
-    maxDistance: 16
-  });
-  if (wood) {
-    bot.pathfinder.setGoal(new GoalBlock(wood.position.x, wood.position.y, wood.position.z));
+  const mcData = require('minecraft-data')(bot.version);
+  const inventory = bot.inventory.items().map(i => i.name);
+
+  const hasWood = inventory.includes('oak_log') || inventory.some(i => i.includes('_log'));
+  const hasCraftingTable = inventory.includes('crafting_table');
+  const hasPickaxe = inventory.some(i => i.includes('pickaxe'));
+
+  const wood = bot.findBlock({ matching: block => block?.name.includes('_log'), maxDistance: 32 });
+
+  if (!hasWood && wood) {
+    bot.chat('🪓 أبحث عن خشب وسأبدأ تكسيره!');
+    await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z));
+    try {
+      await bot.dig(wood);
+    } catch (err) {
+      bot.chat('❌ فشل في كسر الخشب: ' + err.message);
+    }
+    return;
   }
+
+  if (hasWood && !hasCraftingTable) {
+    const craftingTableRecipe = mcData.recipes.craftingTable?.[0];
+    if (craftingTableRecipe) {
+      bot.chat('🛠️ سأصنع طاولة التصنيع');
+      try {
+        await bot.craft(craftingTableRecipe, 1, null);
+      } catch (err) {
+        bot.chat('❌ فشل في صنع الطاولة: ' + err.message);
+      }
+    }
+    return;
+  }
+
+  if (hasWood && hasCraftingTable && !hasPickaxe) {
+    bot.chat('🧱 أحتاج إلى حجر لصنع فأس حجري');
+    const stone = bot.findBlock({ matching: block => mcData.blocks[block.type].name === 'stone', maxDistance: 32 });
+    if (stone) await bot.pathfinder.goto(new GoalBlock(stone.position.x, stone.position.y, stone.position.z));
+    return;
+  }
+
+  bot.chat('✅ مستعد للتطوير والمهام!');
+  exploreRandomly();
 }
 
 function exploreRandomly() {
   if (!bot.entity) return;
-  const x = bot.entity.position.x + Math.floor(Math.random() * 10 - 5);
-  const z = bot.entity.position.z + Math.floor(Math.random() * 10 - 5);
+  const x = bot.entity.position.x + Math.floor(Math.random() * 20 - 10);
+  const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10);
   const y = bot.entity.position.y;
   bot.pathfinder.setGoal(new GoalBlock(x, y, z));
 }
@@ -76,12 +109,8 @@ function createBot() {
     bot.pathfinder.setMovements(defaultMove);
 
     setInterval(() => {
-      if (bot.entity) {
-        exploreRandomly();
-      }
+      if (bot.entity) evolveBot();
     }, 15000);
-
-    evolveBot();
   });
 
   bot.on('goal_reached', () => {
