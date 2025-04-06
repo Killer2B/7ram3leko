@@ -1,4 +1,6 @@
-const mineflayer = require('mineflayer'); const { pathfinder, Movements, goals } = require('mineflayer-pathfinder'); const { GoalNear, GoalBlock } = goals; const autoeat = require('mineflayer-auto-eat').plugin; const armorManager = require('mineflayer-armor-manager'); const { mineflayer: mineflayerViewer } = require('prismarine-viewer'); const express = require('express'); const fs = require('fs'); const { Vec3 } = require('vec3');
+const mineflayer = require('mineflayer'); const { pathfinder, Movements, goals } = require('mineflayer-pathfinder'); const { GoalNear, GoalBlock } = goals; const autoeat = require('mineflayer-auto-eat').plugin; const armorManager = require('mineflayer-armor-manager'); 
+//const { mineflayer: mineflayerViewer } = require('prismarine-viewer'); 
+const express = require('express'); const fs = require('fs'); const { Vec3 } = require('vec3');
 
 const app = express(); const PORT = process.env.PORT || 3000; app.get('/', (req, res) => res.send('Bot is alive')); app.listen(PORT, () => console.log('Web server running on port ${PORT}'));
 
