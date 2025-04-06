@@ -28,6 +28,7 @@ const knownLocations = { villages: [], resources: {} };
 const diaryFile = './diary.json';
 const memoryFile = './memory.json';
 let isConnecting = false;
+let isBusy = false;
 
 if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
 if (!fs.existsSync(diaryFile)) fs.writeFileSync(diaryFile, JSON.stringify([], null, 2));
@@ -44,6 +45,8 @@ function saveMemory() {
 
 async function evolveBot() {
   if (!bot.chat || typeof bot.chat !== 'function') return;
+  if (isBusy) return;
+  isBusy = true;
 
   const mcData = require('minecraft-data')(bot.version);
   const inventory = bot.inventory.items().map(i => i.name);
@@ -56,12 +59,13 @@ async function evolveBot() {
 
   if (!hasWood && wood) {
     bot.chat('🪓 أبحث عن خشب وسأبدأ تكسيره!');
-    await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z));
     try {
+      await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z));
       await bot.dig(wood);
     } catch (err) {
       bot.chat('❌ فشل في كسر الخشب: ' + err.message);
     }
+    isBusy = false;
     return;
   }
 
@@ -75,18 +79,27 @@ async function evolveBot() {
         bot.chat('❌ فشل في صنع الطاولة: ' + err.message);
       }
     }
+    isBusy = false;
     return;
   }
 
   if (hasWood && hasCraftingTable && !hasPickaxe) {
     bot.chat('🧱 أحتاج إلى حجر لصنع فأس حجري');
     const stone = bot.findBlock({ matching: block => mcData.blocks[block.type].name === 'stone', maxDistance: 32 });
-    if (stone) await bot.pathfinder.goto(new GoalBlock(stone.position.x, stone.position.y, stone.position.z));
+    if (stone) {
+      try {
+        await bot.pathfinder.goto(new GoalBlock(stone.position.x, stone.position.y, stone.position.z));
+      } catch (err) {
+        bot.chat('❌ فشل في الوصول للحجر: ' + err.message);
+      }
+    }
+    isBusy = false;
     return;
   }
 
   bot.chat('✅ مستعد للتطوير والمهام!');
   exploreRandomly();
+  isBusy = false;
 }
 
 function exploreRandomly() {
@@ -115,7 +128,7 @@ function createBot() {
 
   bot.on('goal_reached', () => {
     console.log('🎯 الهدف تم الوصول إليه! اختيار هدف جديد ...');
-    exploreRandomly();
+    if (!isBusy) exploreRandomly();
   });
 
   bot.on('kicked', (reason) => {
