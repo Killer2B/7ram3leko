@@ -16,46 +16,33 @@ function logDiary(entry) { const diary = JSON.parse(fs.readFileSync(diaryFile));
 
 function saveMemory() { fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2)); }
 
-let taskQueue = []; let isWorking = false;
+let isBusy = false;
 
-function addTask(taskFunction) { taskQueue.push(taskFunction); processTasks(); }
-
-async function processTasks() { if (isWorking || taskQueue.length === 0) return; isWorking = true; const currentTask = taskQueue.shift(); try { await currentTask(); } catch (err) { console.log('❌ Task error:', err.message); } isWorking = false; setTimeout(processTasks, 1000); }
-
-async function evolveTask() { if (!bot.chat || typeof bot.chat !== 'function') return;
+async function evolveBot() { if (!bot.chat || typeof bot.chat !== 'function' || isBusy) return;
 
 const mcData = require('minecraft-data')(bot.version); const inventory = bot.inventory.items().map(i => i.name); const hasWood = inventory.includes('oak_log') || inventory.some(i => i.includes('_log')); const hasCraftingTable = inventory.includes('crafting_table'); const hasPickaxe = inventory.some(i => i.includes('pickaxe'));
 
 const wood = bot.findBlock({ matching: block => block && block.name.includes('_log'), maxDistance: 32 });
 
-if (!hasWood && wood) { bot.chat('أبحث عن خشب!'); await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z)); await bot.dig(wood); return addTask(evolveTask); }
+isBusy = true;
 
-if (hasWood && !hasCraftingTable) { const tableRecipe = mcData.recipes.craftingTable?.[0]; if (tableRecipe) { bot.chat('أصنع طاولة التصنيع'); await bot.craft(tableRecipe, 1, null); return addTask(evolveTask); } }
+try { if (!hasWood && wood) { bot.chat('أبحث عن خشب وسأبدأ تكسيره!'); await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z)); await bot.dig(wood); } else if (hasWood && !hasCraftingTable) { const recipe = mcData.recipes.craftingTable?.[0]; if (recipe) { bot.chat('سأصنع طاولة التصنيع'); await bot.craft(recipe, 1, null); } } else if (hasWood && hasCraftingTable && !hasPickaxe) { const stone = bot.findBlock({ matching: block => mcData.blocks[block.type].name === 'stone', maxDistance: 32 }); if (stone) { bot.chat('أبحث عن حجر لصنع فأس حجري'); await bot.pathfinder.goto(new GoalBlock(stone.position.x, stone.position.y, stone.position.z)); } } else { bot.chat('✅ مستعد للتطوير والمهام!'); exploreRandomly(); } } catch (err) { console.log('❌ evolveBot error:', err.message); }
 
-if (hasWood && hasCraftingTable && !hasPickaxe) { const stick = bot.inventory.items().find(i => i.name.includes('stick')); if (!stick) { bot.chat('أحتاج إلى عصي، سأصنعها'); const plank = bot.inventory.items().find(i => i.name.includes('planks')); const stickRecipe = bot.recipesFor(mcData.itemsByName.stick.id, null, 1)[0]; if (plank && stickRecipe) { await bot.craft(stickRecipe, 1, null); return addTask(evolveTask); } }
+isBusy = false; }
 
-const pickaxeRecipe = bot.recipesFor(mcData.itemsByName.wooden_pickaxe.id, null, 1)[0];
-if (pickaxeRecipe) {
-  bot.chat('أصنع فأس خشبي');
-  await bot.craft(pickaxeRecipe, 1, null);
-  return addTask(evolveTask);
-}
-
-}
-
-bot.chat('✅ التطوير تم! أبدأ الاستكشاف.'); addTask(exploreTask); }
-
-async function exploreTask() { if (!bot.entity) return; const x = bot.entity.position.x + Math.floor(Math.random() * 20 - 10); const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10); const y = bot.entity.position.y; try { bot.chat('أستكشف المنطقة ...'); await bot.pathfinder.goto(new GoalBlock(x, y, z)); return addTask(evolveTask); } catch (err) { console.log('⚠️ Explore error:', err.message); return addTask(evolveTask); } }
+function exploreRandomly() { if (!bot.entity) return; const x = bot.entity.position.x + Math.floor(Math.random() * 20 - 10); const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10); const y = bot.entity.position.y; try { bot.pathfinder.setGoal(new GoalBlock(x, y, z)); } catch (err) { console.log('⚠️ Goal change error:', err.message); } }
 
 function createBot() { bot = mineflayer.createBot(botOptions); bot.loadPlugin(pathfinder);
 
 bot.once('spawn', () => { console.log('✅ Bot has joined the server.'); reconnectDelay = 5000; const mcData = require('minecraft-data')(bot.version); const defaultMove = new Movements(bot, mcData); bot.pathfinder.setMovements(defaultMove);
 
-addTask(evolveTask);
+setInterval(() => {
+  if (bot && bot.entity && !isBusy) evolveBot();
+}, 15000);
 
 });
 
-bot.on('goal_reached', () => { console.log('🎯 الهدف تم الوصول إليه!'); });
+bot.on('goal_reached', () => { console.log('🎯 الهدف تم الوصول إليه! اختيار هدف جديد ...'); if (!isBusy) exploreRandomly(); });
 
 bot.on('kicked', (reason) => { console.log('🥾 Kicked:', reason); isConnecting = false; const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason); const match = reasonString.match(/wait (\d+) seconds?/i); if (match) reconnectDelay = parseInt(match[1]) * 1000; else reconnectDelay = Math.min(reconnectDelay + 2000, 15000); console.log(🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...); setTimeout(checkServerAndStart, reconnectDelay); });
 
