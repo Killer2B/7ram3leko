@@ -26,7 +26,6 @@ let deathCount = 0;
 const knownLocations = { villages: [], resources: {} };
 const diaryFile = './diary.json';
 const memoryFile = './memory.json';
-const arabicCommands = {};
 
 if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
 if (!fs.existsSync(diaryFile)) fs.writeFileSync(diaryFile, JSON.stringify([], null, 2));
@@ -95,6 +94,7 @@ function createBot() {
     bot.pathfinder.setMovements(defaultMove);
 
     setInterval(() => {
+      if (!bot.entity) return;
       const yaw = Math.random() * Math.PI * 2;
       bot.look(yaw, 0, true);
     }, 10000);
@@ -138,7 +138,7 @@ function createBot() {
 
   bot.on('entityHurt', (entity) => {
     if (entity.type === 'player' && entity.username !== bot.username) {
-      const dist = bot.entity.position.distanceTo(entity.position);
+      const dist = bot.entity?.position.distanceTo(entity.position);
       if (dist < 4) {
         bot.chat('⚔️ لا تقترب مني!');
         bot.attack(entity);
