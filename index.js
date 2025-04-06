@@ -1,11 +1,11 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const { GoalNear, GoalBlock } = goals;
 const autoeat = require('mineflayer-auto-eat').plugin;
 const armorManager = require('mineflayer-armor-manager').plugin;
 const express = require('express');
 const fs = require('fs');
-const { Vec3 } = require('vec3');
+
+const { GoalNear, GoalBlock } = goals;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -99,6 +99,7 @@ function createBot() {
   bot = mineflayer.createBot({ host, username, version });
 
   // Plugins
+  bot.loadPlugin(pathfinder);
   bot.loadPlugin(autoeat);
   bot.loadPlugin(armorManager);
 
