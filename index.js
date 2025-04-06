@@ -3,9 +3,10 @@ const mineflayer = require('mineflayer'); const { pathfinder, Movements, goals }
 const app = express(); const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
+
 const randomId = Math.floor(Math.random() * 10000); const botOptions = { host: 'X234.aternos.me', port: 13246, username: 'Wikko_' + randomId, auth: 'offline', version: false };
 
-let bot; let reconnectDelay = 5000; let deathCount = 0; let isConnecting = false; let isBusy = false;
+let bot; let reconnectDelay = 5000; let deathCount = 0; let isConnecting = false;
 
 const knownLocations = { villages: [], resources: {} }; const diaryFile = './diary.json'; const memoryFile = './memory.json';
 
@@ -15,7 +16,7 @@ function logDiary(entry) { const diary = JSON.parse(fs.readFileSync(diaryFile));
 
 function saveMemory() { fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2)); }
 
-async function evolveBot() { if (!bot.chat || typeof bot.chat !== 'function' || isBusy) return; isBusy = true;
+async function evolveBot() { if (!bot.chat || typeof bot.chat !== 'function') return;
 
 const mcData = require('minecraft-data')(bot.version); const inventory = bot.inventory.items().map(i => i.name); const hasWood = inventory.includes('oak_log') || inventory.some(i => i.includes('_log')); const hasCraftingTable = inventory.includes('crafting_table'); const hasPickaxe = inventory.some(i => i.includes('pickaxe'));
 
@@ -47,7 +48,7 @@ if (hasWood && hasCraftingTable && !hasPickaxe) {
 bot.chat('✅ مستعد للتطوير والمهام!');
 exploreRandomly();
 
-} catch (err) { console.log('❌ evolveBot error:', err.message); } finally { isBusy = false; } }
+} catch (err) { console.log('❌ evolveBot error:', err.message); } }
 
 function exploreRandomly() { if (!bot.entity) return; const x = bot.entity.position.x + Math.floor(Math.random() * 20 - 10); const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10); const y = bot.entity.position.y; try { bot.pathfinder.setGoal(new GoalBlock(x, y, z)); } catch (err) { console.log('⚠️ Goal change error:', err.message); } }
 
