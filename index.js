@@ -67,8 +67,20 @@ bot.on('chat', (username, message) => { if (username === bot.username) return; i
 
 bot.on('death', () => { deathCount++; logDiary('مات البوت مرة أخرى. عدد مرات الموت: ' + deathCount); if (deathCount >= 3 && bot.chat) bot.chat('🧠 أتعلم كيف أعيش أفضل!'); });
 
-bot.on('kicked', (reason) => { console.log('🥿 Kicked:', reason); isConnecting = false; const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason); const match = reasonString.match(/wait (\d+) seconds?/i); if (match) reconnectDelay = parseInt(match[1]) * 1000; else reconnectDelay = Math.min(reconnectDelay + 2000, 15000); console.log(⚫ Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...); setTimeout(checkServerAndStart, reconnectDelay); });
-
+bot.on('kicked', (reason) => {
+  console.log('🥿 Kicked:', reason);
+  isConnecting = false;
+  const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason);
+  const match = reasonString.match(/wait (\d+) seconds?/i);
+  if (match) {
+    reconnectDelay = parseInt(match[1]) * 1000;
+  } else {
+    reconnectDelay = Math.min(reconnectDelay + 2000, 15000);
+  }
+  console.log(`⚫ Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
+  setTimeout(checkServerAndStart, reconnectDelay);
+});
+                      
 bot.on('end', () => { console.log('🔌 Bot connection ended.'); isConnecting = false; setTimeout(checkServerAndStart, reconnectDelay); });
 
 bot.on('error', (err) => { console.log('❌ Bot error:', err.message); isConnecting = false; setTimeout(checkServerAndStart, reconnectDelay); }); }
