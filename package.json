@@ -1,16 +1,29 @@
 {
-  "name": "minecraft-bot",
+  "name": "minecraft-ai-bot",
   "version": "1.0.0",
+  "description": "Minecraft AI bot with auto-reconnect, survival and evolving behavior",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "mineflayer": "^4.12.0",
-    "mineflayer-pathfinder": "^2.3.2",
-    "mineflayer-auto-eat": "^1.1.0",
-    "mineflayer-armor-manager": "^1.2.0",
+    "mineflayer": "^4.27.0",
+    "mineflayer-pathfinder": "^2.3.1",
+    "mineflayer-auto-eat": "^1.1.1",
+    "mineflayer-armor-manager": "^1.1.0",
     "express": "^4.18.2",
-    "vec3": "^0.1.7"
-  }
+    "minecraft-data": "^3.36.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "minecraft",
+    "bot",
+    "mineflayer",
+    "AI",
+    "autonomous"
+  ],
+  "author": "",
+  "license": "MIT"
 }
