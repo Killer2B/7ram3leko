@@ -26,7 +26,10 @@ let deathCount = 0;
 const knownLocations = { villages: [], resources: {} };
 const diaryFile = './diary.json';
 const memoryFile = './memory.json';
-const arabicCommands = JSON.parse(fs.readFileSync('./arabic_commands.json'));
+
+// ✅ تم تعليق هذا السطر مؤقتًا لتجنب مشاكل البناء
+// const arabicCommands = JSON.parse(fs.readFileSync('./arabic_commands.json'));
+const arabicCommands = {};
 
 if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
 if (!fs.existsSync(diaryFile)) fs.writeFileSync(diaryFile, JSON.stringify([], null, 2));
@@ -106,6 +109,8 @@ function createBot() {
   bot.on('chat', (username, message) => {
     if (username === bot.username) return;
     const command = message.trim().toLowerCase();
+    // ✅ تم تعليق المعالجة المؤقتة حتى لا تفشل بسبب الملف المفقود
+    /*
     for (const key in arabicCommands) {
       if (command.includes(key)) {
         bot.chat(arabicCommands[key].response);
@@ -113,6 +118,7 @@ function createBot() {
         return;
       }
     }
+    */
   });
 }
 
