@@ -66,7 +66,7 @@ bot.on('goal_reached', () => { console.log('🎯 الهدف تم الوصول إ
 
 bot.on('kicked', (reason) => { console.log('🥾 Kicked:', reason); isConnecting = false; const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason); const match = reasonString.match(/wait (\d+) seconds?/i); if (match) reconnectDelay = parseInt(match[1]) * 1000; else reconnectDelay = Math.min(reconnectDelay + 2000, 15000); console.log(🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...); setTimeout(checkServerAndStart, reconnectDelay); });
 
-bot.on('end', () => { console.log(🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...); isConnecting = false; setTimeout(checkServerAndStart, reconnectDelay); });
+bot.on('end', () => { console.log('🔌 Bot disconnected.' Reconnecting in ${reconnectDelay / 1000}s...); isConnecting = false; setTimeout(checkServerAndStart, reconnectDelay); });
 
 bot.on('error', (err) => { console.log('❌ Error:', err); isConnecting = false; if (err.code === 'ECONNRESET') { console.log('🔁 تم قطع الاتصال، سيتم إعادة الاتصال خلال ثوانٍ ...'); setTimeout(checkServerAndStart, reconnectDelay); } });
 
