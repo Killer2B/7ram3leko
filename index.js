@@ -8,32 +8,12 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 8080;
 app.get('/', (req, res) => res.send('Bot is alive'));
-app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Web server running on port ${PORT}`));
 
-process.on('uncaughtException', err => {
-  console.error('Uncaught Exception:', err);
-  setTimeout(checkServerAndStart, reconnectDelay);
-});
-
-const randomId = Math.floor(Math.random() * 10000);
-const botOptions = {
-  host: 'X234.aternos.me',
-  port: 13246,
-  username: 'Wikko_' + randomId,
-  auth: 'offline',
-  version: false
-};
-
-let bot;
-let reconnectDelay = 5000;
-let deathCount = 0;
-let isConnecting = false;
-
-const knownLocations = { villages: [], resources: {} };
 const diaryFile = './diary.json';
 const memoryFile = './memory.json';
 
-if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
+if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify({ villages: [], resources: {} }, null, 2));
 if (!fs.existsSync(diaryFile)) fs.writeFileSync(diaryFile, JSON.stringify([], null, 2));
 
 function logDiary(entry) {
@@ -42,68 +22,26 @@ function logDiary(entry) {
   fs.writeFileSync(diaryFile, JSON.stringify(diary, null, 2));
 }
 
-function saveMemory() {
-  fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
-}
-
-async function evolveBot() {
-  if (!bot.chat || typeof bot.chat !== 'function') return;
-
-  const mcData = require('minecraft-data')(bot.version);
-  const inventory = bot.inventory.items().map(i => i.name);
-
-  const hasWood = inventory.includes('oak_log') || inventory.some(i => i.includes('_log'));
-  const hasCraftingTable = inventory.includes('crafting_table');
-  const hasPickaxe = inventory.some(i => i.includes('pickaxe'));
-  const wood = bot.findBlock({ matching: block => block?.name.includes('_log'), maxDistance: 32 });
-
-  if (!hasWood && wood) {
-    bot.chat('أبحث عن خشب وسأبدأ تكسيره!');
-    await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z));
-    try {
-      await bot.dig(wood);
-    } catch (err) {
-      bot.chat('❌ فشل في كسر الخشب: ' + err.message);
-    }
-    return;
-  }
-
-  if (hasWood && !hasCraftingTable) {
-    const craftingTableRecipe = mcData.recipes.craftingTable?.[0];
-    if (craftingTableRecipe) {
-      bot.chat('سأصنع طاولة التصنيع');
-      try {
-        await bot.craft(craftingTableRecipe, 1, null);
-      } catch (err) {
-        bot.chat('❌ فشل في صنع الطاولة: ' + err.message);
-      }
-    }
-    return;
-  }
-
-  if (hasWood && hasCraftingTable && !hasPickaxe) {
-    bot.chat('أحتاج إلى حجر لصنع فأس حجري');
-    const stone = bot.findBlock({
-      matching: block => mcData.blocks[block.type].name === 'stone',
-      maxDistance: 32
-    });
-    if (stone) await bot.pathfinder.goto(new GoalBlock(stone.position.x, stone.position.y, stone.position.z));
-    return;
-  }
-
-  bot.chat('✅ مستعد للتطوير والمهام!');
-  exploreRandomly();
-}
-
-function exploreRandomly() {
-  if (!bot.entity) return;
-  const x = bot.entity.position.x + Math.floor(Math.random() * 20 - 10);
-  const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10);
-  const y = bot.entity.position.y;
-  bot.pathfinder.setGoal(new GoalBlock(x, y, z));
-}
+let bot;
+let deathCount = 0;
+let reconnectDelay = 5000;
+let isConnecting = false;
 
 function createBot() {
+  const randomId = Math.floor(Math.random() * 10000);
+  const botOptions = {
+    host: 'X234.aternos.me',
+    port: 13246,
+    username: 'Wikko_' + randomId,
+    auth: 'offline',
+    version: false,
+  };
+
+  if (bot) {
+    try { bot.quit(); } catch (e) {}
+    bot = null;
+  }
+
   bot = mineflayer.createBot(botOptions);
   bot.loadPlugin(pathfinder);
 
@@ -113,24 +51,27 @@ function createBot() {
     const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
     bot.pathfinder.setMovements(defaultMove);
-    setInterval(() => {
-      if (bot.entity) evolveBot();
-    }, 20000);
+
+    setInterval(() => evolveBot(), 15000);
   });
 
   bot.on('goal_reached', () => {
-    console.log('🎯 الهدف تم الوصول إليه! اختيار هدف جديد ...');
+    console.log('🎯 Reached goal, exploring...');
     exploreRandomly();
   });
 
   bot.on('kicked', (reason) => {
     console.log('🥾 Kicked:', reason);
     isConnecting = false;
-    const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason);
-    const match = reasonString.match(/wait (\d+) seconds?/i);
-    if (match) reconnectDelay = parseInt(match[1]) * 1000;
-    else reconnectDelay = Math.min(reconnectDelay + 2000, 15000);
-    console.log(`🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
+
+    const reasonText = typeof reason === 'string' ? reason : JSON.stringify(reason);
+    if (reasonText.includes('duplicate_login')) {
+      reconnectDelay += 5000;
+    } else if (reasonText.includes('throttled')) {
+      reconnectDelay = Math.min(reconnectDelay + 5000, 60000);
+    }
+
+    console.log(`🔌 Reconnecting in ${reconnectDelay / 1000}s...`);
     setTimeout(checkServerAndStart, reconnectDelay);
   });
 
@@ -141,48 +82,84 @@ function createBot() {
   });
 
   bot.on('error', (err) => {
-    console.log('❌ Error:', err);
+    console.log('❌ Error:', err.code || err.message);
     isConnecting = false;
-    if (err.code === 'ECONNRESET') {
-      console.log('🔁 تم قطع الاتصال، سيتم إعادة الاتصال خلال ثوانٍ ...');
-      setTimeout(checkServerAndStart, reconnectDelay);
-    }
+    reconnectDelay = Math.min(reconnectDelay + 5000, 60000);
+    setTimeout(checkServerAndStart, reconnectDelay);
   });
 
   bot.on('death', () => {
     deathCount++;
-    logDiary('مات البوت مرة أخرى. عدد مرات الموت: ' + deathCount);
-    if (deathCount >= 3 && bot.chat) bot.chat('🧠 أتعلم كيف أعيش أفضل!');
+    logDiary('البوت مات. عدد مرات الموت: ' + deathCount);
+    if (deathCount >= 3) bot.chat('أتعلم من أخطائي!');
   });
 
   bot.on('entityHurt', (entity) => {
-    if (!bot.entity || !entity?.position) return;
     if (entity.type === 'player' && entity.username !== bot.username) {
       const dist = bot.entity.position.distanceTo(entity.position);
       if (dist < 4) {
-        if (bot.chat) bot.chat('⚔️ لا تقترب مني!');
+        bot.chat('⚔️ لا تقترب مني!');
         bot.attack(entity);
       }
     }
   });
+}
 
-  bot.on('chat', (username, message) => {
-    if (username === bot.username || !message) return;
-    const command = message.trim().toLowerCase();
-    // أوامر مستقبلية يمكن إضافتها هنا
-  });
+function exploreRandomly() {
+  const pos = bot.entity.position;
+  const x = pos.x + Math.floor(Math.random() * 20 - 10);
+  const z = pos.z + Math.floor(Math.random() * 20 - 10);
+  const y = pos.y;
+  bot.pathfinder.setGoal(new GoalBlock(x, y, z));
+}
+
+async function evolveBot() {
+  const mcData = require('minecraft-data')(bot.version);
+  const inventory = bot.inventory.items().map(i => i.name);
+  const hasWood = inventory.includes('oak_log') || inventory.some(i => i.includes('_log'));
+  const hasCraftingTable = inventory.includes('crafting_table');
+  const hasPickaxe = inventory.some(i => i.includes('pickaxe'));
+
+  if (!hasWood) {
+    const wood = bot.findBlock({ matching: block => block.name.includes('_log'), maxDistance: 32 });
+    if (wood) {
+      bot.chat('أبحث عن خشب!');
+      await bot.pathfinder.goto(new GoalBlock(wood.position.x, wood.position.y, wood.position.z));
+      try { await bot.dig(wood); } catch (e) { bot.chat('❌ لم أستطع كسر الخشب'); }
+    }
+    return;
+  }
+
+  if (hasWood && !hasCraftingTable) {
+    const recipe = mcData.recipes.craftingTable?.[0];
+    if (recipe) {
+      bot.chat('سأصنع طاولة تصنيع');
+      try { await bot.craft(recipe, 1, null); } catch (e) { bot.chat('❌ فشل في الصناعة'); }
+    }
+    return;
+  }
+
+  if (hasWood && hasCraftingTable && !hasPickaxe) {
+    bot.chat('أحتاج إلى حجر لأصنع فأس');
+    const stone = bot.findBlock({ matching: b => mcData.blocks[b.type].name === 'stone', maxDistance: 32 });
+    if (stone) await bot.pathfinder.goto(new GoalBlock(stone.position.x, stone.position.y, stone.position.z));
+    return;
+  }
+
+  bot.chat('✅ جاهز للتطوير!');
+  exploreRandomly();
 }
 
 function checkServerAndStart() {
   if (isConnecting) return;
   isConnecting = true;
-
   try {
     createBot();
   } catch (err) {
     isConnecting = false;
-    console.log('🔴 السيرفر غير متاح حالياً. إعادة المحاولة بعد 30 ثانية...');
-    setTimeout(checkServerAndStart, 30000);
+    reconnectDelay = Math.min(reconnectDelay + 5000, 60000);
+    console.log(`🔴 فشل الاتصال، المحاولة مجددًا بعد ${reconnectDelay / 1000}s`);
+    setTimeout(checkServerAndStart, reconnectDelay);
   }
 }
 
