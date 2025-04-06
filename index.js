@@ -2,8 +2,8 @@
 
 const mineflayer = require('mineflayer'); const { pathfinder, Movements, goals } = require('mineflayer-pathfinder'); const { GoalNear, GoalBlock } = goals; const { Vec3 } = require('vec3'); const express = require('express'); const fs = require('fs'); const app = express(); const PORT = process.env.PORT || 8080;
 
-app.get('/', (req, res) => res.send('Bot is alive')); app.listen(PORT, () => console.log(Web server running on port ${PORT}));
-
+app.get('/', (req, res) => res.send('Bot is alive'));
+app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
 const randomId = Math.floor(Math.random() * 10000); const botOptions = { host: 'X234.aternos.me', port: 13246, username: 'Wikko_' + randomId, auth: 'offline', version: false };
 
 let bot; let reconnectDelay = 5000; let deathCount = 0; const knownLocations = { villages: [], resources: {} }; const diaryFile = './diary.json'; const memoryFile = './memory.json'; let isConnecting = false;
