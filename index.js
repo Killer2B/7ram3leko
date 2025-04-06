@@ -1,6 +1,6 @@
 const mineflayer = require('mineflayer'); const { pathfinder, Movements, goals } = require('mineflayer-pathfinder'); const { GoalBlock, GoalNear } = goals; const autoeat = require('mineflayer-auto-eat'); const armorManager = require('mineflayer-armor-manager'); const express = require('express'); const fs = require('fs');
 
-const app = express(); const PORT = process.env.PORT || 3000; app.get('/', (req, res) => res.send('Bot is alive')); app.listen(PORT, () => console.log(Web server running on port ${PORT}));
+const app = express(); const PORT = process.env.PORT || 3000; app.get('/', (req, res) => res.send('Bot is alive')); app.listen(PORT, () => console.log('Web server running on port ${PORT}'));
 
 const botOptions = { host: 'X234.aternos.me', port: 13246, username: 'wikko', auth: 'offline', version: false };
 
@@ -74,7 +74,7 @@ bot.on('chat', (username, message) => { if (username === bot.username) return; i
 
 bot.on('death', () => { deathCount++; logDiary('مات البوت. عدد الوفيات: ' + deathCount); if (deathCount >= 3) bot.chat('أتعلم من أخطائي'); });
 
-bot.on('kicked', (reason) => { console.log('🦶 Kicked:', reason); isConnecting = false; const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason); const match = reasonString.match(/wait (\d+) seconds?/i); reconnectDelay = match ? parseInt(match[1]) * 1000 : Math.min(reconnectDelay + 2000, 15000); console.log(🔁 إعادة الاتصال خلال ${reconnectDelay / 1000}s...); setTimeout(checkServerAndStart, reconnectDelay); });
+bot.on('kicked', (reason) => { console.log('🦶 Kicked:', reason); isConnecting = false; const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason); const match = reasonString.match(/wait (\d+) seconds?/i); reconnectDelay = match ? parseInt(match[1]) * 1000 : Math.min(reconnectDelay + 2000, 15000); console.log('🔁 إعادة الاتصال خلال' ${reconnectDelay / 1000}s...); setTimeout(checkServerAndStart, reconnectDelay); });
 
 bot.on('end', () => { console.log('🔌 انتهى الاتصال.'); isConnecting = false; setTimeout(checkServerAndStart, reconnectDelay); });
 
