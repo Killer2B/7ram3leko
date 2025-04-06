@@ -6,7 +6,6 @@ const armorManager = require('mineflayer-armor-manager').plugin;
 const express = require('express');
 const fs = require('fs');
 const { Vec3 } = require('vec3');
-const mcDataLoader = require('minecraft-data');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,19 +41,22 @@ function exploreRandomly() {
   try {
     bot.pathfinder.setGoal(new GoalBlock(x, y, z));
   } catch (err) {
-    console.log('Goal change error:', err.message);
+    console.log('⚠️ Goal change error:', err.message);
   }
 }
 
 async function evolveBot() {
   if (!bot.chat || typeof bot.chat !== 'function') return;
-  const mcData = mcDataLoader(bot.version);
+  const mcData = require('minecraft-data')(bot.version);
   const inventory = bot.inventory.items().map(i => i.name);
   const hasWood = inventory.includes('oak_log') || inventory.some(i => i.includes('_log'));
   const hasCraftingTable = inventory.includes('crafting_table');
   const hasPickaxe = inventory.some(i => i.includes('pickaxe'));
 
-  const wood = bot.findBlock({ matching: block => block && block.name.includes('_log'), maxDistance: 32 });
+  const wood = bot.findBlock({
+    matching: block => block && block.name.includes('_log'),
+    maxDistance: 32
+  });
 
   try {
     if (!hasWood && wood) {
@@ -89,25 +91,21 @@ async function evolveBot() {
     exploreRandomly();
 
   } catch (err) {
-    console.log('evolveBot error:', err.message);
+    console.log('❌ evolveBot error:', err.message);
   }
 }
 
 function createBot() {
-  bot = mineflayer.createBot({
-    host,
-    username,
-    version,
-  });
+  bot = mineflayer.createBot({ host, username, version });
 
+  // Plugins
   bot.loadPlugin(pathfinder);
   bot.loadPlugin(autoeat);
   bot.loadPlugin(armorManager);
 
   bot.once('spawn', () => {
     console.log('✅ Bot spawned');
-
-    const mcData = mcDataLoader(bot.version);
+    const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
     bot.pathfinder.setMovements(defaultMove);
 
@@ -145,13 +143,13 @@ function createBot() {
   });
 
   bot.on('kicked', (reason) => {
-    console.log('Kicked:', reason);
+    console.log('🥿 Kicked:', reason);
     isConnecting = false;
     const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason);
     const match = reasonString.match(/wait (\d+) seconds?/i);
     if (match) reconnectDelay = parseInt(match[1]) * 1000;
     else reconnectDelay = Math.min(reconnectDelay + 2000, 15000);
-    console.log(`Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
+    console.log(`⚫ Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
     setTimeout(checkServerAndStart, reconnectDelay);
   });
 
