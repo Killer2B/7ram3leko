@@ -1,7 +1,7 @@
 {
   "name": "minecraft-bot",
   "version": "1.0.0",
-  "description": "Minecraft bot with full AI, progression, and Arabic interaction",
+  "description": "Minecraft bot with full AI and Arabic support",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
