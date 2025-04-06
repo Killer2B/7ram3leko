@@ -1,7 +1,7 @@
 {
   "name": "minecraft-bot",
   "version": "1.0.0",
-  "description": "A Minecraft bot for Aternos with auto-reconnect, anti-AFK, and exploration",
+  "description": "Minecraft bot with full AI, progression, and Arabic interaction",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,7 +9,9 @@
   "dependencies": {
     "express": "^4.18.2",
     "mineflayer": "^4.9.1",
-    "mineflayer-pathfinder": "^2.3.0",
-    "minecraft-data": "^3.6.4"
+    "mineflayer-pathfinder": "^2.5.1",
+    "minecraft-data": "^3.32.0",
+    "minecraft-server-util": "^5.2.5",
+    "vec3": "^0.1.8"
   }
 }
