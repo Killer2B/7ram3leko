@@ -140,6 +140,9 @@ function evolveBot() {
         await mineToDiamond();
         await buildNetherPortalAndEnter();
         await mineNetheriteAndUpgrade();
+        await buildFurnaceAndCook();
+        await catchFish();
+        await tradeWithVillagers();
         break;
     }
     stage = (stage + 1) % 6;
@@ -159,20 +162,41 @@ function exploreRandomly() {
   if (blockBelow) knownLocations.resources[blockBelow.name] = blockBelow.position;
 }
 
-async function mineToDiamond() {
-  logDiary('⛏️ تعدين للدايموند والحديد.');
-  // TODO: استخدام أنماط تعدين فعالة + تحديد Y المناسب
+async function collectBlocks(blockNames) {
+  const targets = bot.findBlocks({
+    matching: block => blockNames.includes(bot.blockAt(block)?.name),
+    maxDistance: 64,
+    count: 3
+  });
+
+  if (targets.length === 0) {
+    bot.chat('🔍 لا أرى أي من الكتل المطلوبة!');
+    return;
+  }
+
+  for (const pos of targets) {
+    const block = bot.blockAt(pos);
+    if (block && bot.canDigBlock(block)) {
+      await bot.pathfinder.goto(new GoalBlock(pos.x, pos.y, pos.z));
+      await bot.dig(block);
+      logDiary(`⛏️ جمعت كتلة: ${block.name} عند (${pos.x}, ${pos.y}, ${pos.z})`);
+    }
+  }
 }
 
-async function buildNetherPortalAndEnter() {
-  logDiary('🟪 بناء بوابة نذر والدخول.');
-  // TODO: تجميع Obsidian و Flint and Steel ثم بناء البوابة والدخول
+async function buildFurnaceAndCook() {
+  logDiary('🍳 بناء فرن وطبخ الطعام.');
+  // TODO: البحث عن Cobblestone وصناعة فرن وطبخ الطعام
 }
 
-async function mineNetheriteAndUpgrade() {
-  logDiary('🔥 تعدين نذر رايت وترقية الأدوات.');
-  // TODO: البحث عن Ancient Debris وصهره لصناعة Netherite Tools
+async function catchFish() {
+  logDiary('🎣 صيد الأسماك.');
+  // TODO: صناعة صنارة وصيد السمك من المياه
 }
 
-// باقي الوظائف كما هي دون تغيير
+async function tradeWithVillagers() {
+  logDiary('🤝 التفاعل مع القرويين والتجارة.');
+  // TODO: البحث عن قرويين والتفاعل معهم واستغلال التبادل التجاري
+}
+
 createBot();
