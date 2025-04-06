@@ -61,4 +61,3 @@ function checkServerAndStart() { if (isConnecting) return; isConnecting = true;
 try { createBot(); } catch (err) { isConnecting = false; console.log('🔴 السيرفر غير متاح حالياً. إعادة المحاولة بعد 30 ثانية...'); setTimeout(checkServerAndStart, 30000); } }
 
 checkServerAndStart();
-
