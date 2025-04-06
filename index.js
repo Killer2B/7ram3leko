@@ -1,8 +1,8 @@
 const mineflayer = require('mineflayer');
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder').plugin;
 const { GoalNear, GoalBlock } = goals;
 const autoeat = require('mineflayer-auto-eat').plugin;
-const armorManager = require('mineflayer-armor-manager');
+const armorManager = require('mineflayer-armor-manager').plugin;
 const express = require('express');
 const fs = require('fs');
 const { Vec3 } = require('vec3');
