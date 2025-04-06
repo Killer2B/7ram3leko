@@ -12,15 +12,15 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot is alive'));
 app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
 
-const username = process.env.BOT_USERNAME || 'PlayerBot';
-const host = process.env.SERVER_HOST || 'localhost';
+const username = process.env.BOT_USERNAME || 'wikko';
+const host = process.env.SERVER_HOST || 'X234.aternos.me:13246';
 const version = process.env.MC_VERSION || false;
 
 const diaryFile = './diary.json';
 const memoryFile = './memory.json';
 
 let bot;
-let reconnectDelay = 5000;
+let reconnectDelay = 15000;
 let isConnecting = false;
 let deathCount = 0;
 
