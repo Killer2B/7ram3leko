@@ -58,12 +58,13 @@ function createBot() {
       bot.look(yaw, 0, true);
     }, 10000);
 
-    evolveBot();
+    // استدعاء الذكاء والتفاعل الذاتي
+    // evolveBot(); // ← مؤقتًا معطلة لتجنب الأخطاء
   });
 
   bot.on('goal_reached', () => {
     console.log('🎯 الهدف تم الوصول إليه! اختيار هدف جديد ...');
-    exploreRandomly();
+    // exploreRandomly(); // ← مؤقتًا معطلة لتجنب الأخطاء
   });
 
   bot.on('kicked', (reason) => {
@@ -107,6 +108,7 @@ function createBot() {
   bot.on('chat', (username, message) => {
     if (username === bot.username) return;
     const command = message.trim().toLowerCase();
+    // تنفيذ أوامر هنا لاحقًا
   });
 }
 
