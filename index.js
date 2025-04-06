@@ -12,10 +12,11 @@ const PORT = process.env.PORT || 8080;
 app.get('/', (req, res) => res.send('🤖 Bot is alive'));
 app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 
+const randomId = Math.floor(Math.random() * 10000);
 const botOptions = {
   host: 'X234.aternos.me',
   port: 13246,
-  username: '7ram3leko',
+  username: 'Wikko_' + randomId,
   auth: 'offline',
   version: false
 };
