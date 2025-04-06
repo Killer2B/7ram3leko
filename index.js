@@ -46,18 +46,16 @@ async function evolveBot() {
   const mcData = require('minecraft-data')(bot.version);
 
   async function collectAndCraft() {
-    // اجمع خشب
     const log = bot.findBlock({
       matching: block => block && block.name.includes('_log'),
       maxDistance: 32
     });
     if (log) {
-      await bot.pathfinder.goto(new goals.GoalBlock(log.position.x, log.position.y, log.position.z));
+      await bot.pathfinder.goto(new GoalBlock(log.position.x, log.position.y, log.position.z));
       await bot.dig(log);
       bot.chat('🌲 تم جمع الخشب.');
     }
 
-    // صنع طاولة كرافت
     const plankId = mcData.itemsByName.oak_planks.id;
     const tableId = mcData.itemsByName.crafting_table.id;
     const wood = bot.inventory.items().find(item => item.name.includes('log'));
@@ -111,7 +109,8 @@ function createBot() {
 
   bot.on('kicked', (reason) => {
     console.log('🥾 Kicked:', reason);
-    const match = reason.match(/wait (\d+) seconds?/i);
+    const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason);
+    const match = reasonString.match(/wait (\d+) seconds?/i);
     if (match) reconnectDelay = parseInt(match[1]) * 1000;
     else reconnectDelay = Math.min(reconnectDelay + 2000, 15000);
     console.log(`🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
