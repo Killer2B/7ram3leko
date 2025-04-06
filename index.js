@@ -15,7 +15,7 @@ app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 const botOptions = {
   host: 'X234.aternos.me',
   port: 13246,
-  username: 'Wikko',
+  username: '7ram3leko',
   auth: 'offline',
   version: false
 };
@@ -41,41 +41,43 @@ function saveMemory() {
 }
 
 async function evolveBot() {
-  bot.chat('🚀 بدء التطور الذكي!');
-  const mcData = require('minecraft-data')(bot.version);
-
-  async function collectAndCraft() {
-    const log = bot.findBlock({
-      matching: block => block && block.name.includes('_log'),
-      maxDistance: 32
-    });
-    if (log) {
-      await bot.pathfinder.goto(new GoalBlock(log.position.x, log.position.y, log.position.z));
-      await bot.dig(log);
-      bot.chat('🌲 تم جمع الخشب.');
-    }
-
-    const plankId = mcData.itemsByName.oak_planks.id;
-    const tableId = mcData.itemsByName.crafting_table.id;
-    const wood = bot.inventory.items().find(item => item.name.includes('log'));
-    if (wood) {
-      await bot.craft(mcData.recipes.find(r => r.result.id === plankId), 1, null);
-      bot.chat('🪵 صنع ألواح خشبية.');
-      await bot.craft(mcData.recipes.find(r => r.result.id === tableId), 1, null);
-      bot.chat('🛠️ صنع طاولة كرافت.');
-    }
-  }
-
   try {
+    if (!bot.chat || typeof bot.chat !== 'function' || !bot._client || typeof bot._client.chat !== 'function') return;
+    bot.chat('🚀 بدء التطور الذكي!');
+    const mcData = require('minecraft-data')(bot.version);
+
+    async function collectAndCraft() {
+      const log = bot.findBlock({
+        matching: block => block && block.name.includes('_log'),
+        maxDistance: 32
+      });
+      if (log) {
+        await bot.pathfinder.goto(new GoalBlock(log.position.x, log.position.y, log.position.z));
+        await bot.dig(log);
+        bot.chat('🌲 تم جمع الخشب.');
+      }
+
+      const plankId = mcData.itemsByName.oak_planks.id;
+      const tableId = mcData.itemsByName.crafting_table.id;
+      const wood = bot.inventory.items().find(item => item.name.includes('log'));
+      if (wood) {
+        await bot.craft(mcData.recipes.find(r => r.result.id === plankId), 1, null);
+        bot.chat('🪵 صنع ألواح خشبية.');
+        await bot.craft(mcData.recipes.find(r => r.result.id === tableId), 1, null);
+        bot.chat('🛠️ صنع طاولة كرافت.');
+      }
+    }
+
     await collectAndCraft();
     bot.chat('✅ الخطوات الأولية انتهت. سأبدأ الزراعة والبناء قريبًا.');
   } catch (err) {
-    bot.chat('⚠️ خطأ أثناء التطوير: ' + err.message);
+    if (bot.chat) bot.chat('⚠️ خطأ أثناء التطوير: ' + err.message);
     console.log(err);
   }
 }
 
 function exploreRandomly() {
+  if (!bot.entity) return;
   const x = bot.entity.position.x + Math.floor(Math.random() * 20 - 10);
   const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10);
   const y = bot.entity.position.y;
@@ -133,14 +135,15 @@ function createBot() {
   bot.on('death', () => {
     deathCount++;
     logDiary('مات البوت مرة أخرى. عدد مرات الموت: ' + deathCount);
-    if (deathCount >= 3) bot.chat('🧠 أتعلم كيف أعيش أفضل!');
+    if (deathCount >= 3 && bot.chat) bot.chat('🧠 أتعلم كيف أعيش أفضل!');
   });
 
   bot.on('entityHurt', (entity) => {
+    if (!bot.entity || !entity?.position) return;
     if (entity.type === 'player' && entity.username !== bot.username) {
-      const dist = bot.entity?.position.distanceTo(entity.position);
+      const dist = bot.entity.position.distanceTo(entity.position);
       if (dist < 4) {
-        bot.chat('⚔️ لا تقترب مني!');
+        if (bot.chat) bot.chat('⚔️ لا تقترب مني!');
         bot.attack(entity);
       }
     }
@@ -149,6 +152,7 @@ function createBot() {
   bot.on('chat', (username, message) => {
     if (username === bot.username) return;
     const command = message.trim().toLowerCase();
+    // يمكن إضافة أوامر مخصصة لاحقًا هنا
   });
 }
 
