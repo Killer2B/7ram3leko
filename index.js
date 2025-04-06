@@ -26,6 +26,7 @@ let deathCount = 0;
 const knownLocations = { villages: [], resources: {} };
 const diaryFile = './diary.json';
 const memoryFile = './memory.json';
+let isConnecting = false;
 
 if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
 if (!fs.existsSync(diaryFile)) fs.writeFileSync(diaryFile, JSON.stringify([], null, 2));
@@ -111,6 +112,7 @@ function createBot() {
 
   bot.on('kicked', (reason) => {
     console.log('🥾 Kicked:', reason);
+    isConnecting = false;
     const reasonString = typeof reason === 'string' ? reason : JSON.stringify(reason);
     const match = reasonString.match(/wait (\d+) seconds?/i);
     if (match) reconnectDelay = parseInt(match[1]) * 1000;
@@ -121,11 +123,13 @@ function createBot() {
 
   bot.on('end', () => {
     console.log(`🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
+    isConnecting = false;
     setTimeout(checkServerAndStart, reconnectDelay);
   });
 
   bot.on('error', (err) => {
     console.log('❌ Error:', err);
+    isConnecting = false;
     if (err.code === 'ECONNRESET') {
       console.log('🔁 تم قطع الاتصال، سيتم إعادة الاتصال خلال ثوانٍ ...');
       setTimeout(checkServerAndStart, reconnectDelay);
@@ -157,9 +161,13 @@ function createBot() {
 }
 
 async function checkServerAndStart() {
+  if (isConnecting) return;
+  isConnecting = true;
+
   try {
     createBot();
   } catch (err) {
+    isConnecting = false;
     console.log('🔴 السيرفر غير متاح حالياً. إعادة المحاولة بعد 30 ثانية...');
     setTimeout(checkServerAndStart, 30000);
   }
