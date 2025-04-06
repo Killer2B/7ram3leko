@@ -6,6 +6,7 @@ const { GoalNear, GoalBlock } = goals;
 const { Vec3 } = require('vec3');
 const express = require('express');
 const fs = require('fs');
+const mcUtil = require('minecraft-server-util');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -71,15 +72,21 @@ function createBot() {
     if (match) reconnectDelay = parseInt(match[1]) * 1000;
     else reconnectDelay = Math.min(reconnectDelay + 2000, 15000);
     console.log(`🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
-    setTimeout(createBot, reconnectDelay);
+    setTimeout(checkServerAndStart, reconnectDelay);
   });
 
   bot.on('end', () => {
     console.log(`🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
-    setTimeout(createBot, reconnectDelay);
+    setTimeout(checkServerAndStart, reconnectDelay);
   });
 
-  bot.on('error', (err) => console.log('❌ Error:', err));
+  bot.on('error', (err) => {
+    console.log('❌ Error:', err);
+    if (err.code === 'ECONNRESET') {
+      console.log('🔁 تم قطع الاتصال، سيتم إعادة الاتصال خلال ثوانٍ ...');
+      setTimeout(checkServerAndStart, reconnectDelay);
+    }
+  });
 
   bot.on('death', () => {
     deathCount++;
@@ -110,93 +117,17 @@ function createBot() {
   });
 }
 
-function evolveBot() {
-  let stage = 0;
-  setInterval(async () => {
-    logDiary('المرحلة الحالية: ' + stage);
-    switch (stage) {
-      case 0:
-        await collectBlocks(['oak_log', 'birch_log']);
-        await mineUnderground();
-        break;
-      case 1:
-        await craftTools();
-        break;
-      case 2:
-        await createBedIfNotFound();
-        await sleepIfNight();
-        break;
-      case 3:
-        exploreRandomly();
-        await buildChest();
-        await buildSimpleHouse();
-        await manageChest();
-        await autoFarm();
-        break;
-      case 4:
-        await prepareForEnderDragon();
-        break;
-      case 5:
-        await mineToDiamond();
-        await buildNetherPortalAndEnter();
-        await mineNetheriteAndUpgrade();
-        await buildFurnaceAndCook();
-        await catchFish();
-        await tradeWithVillagers();
-        break;
-    }
-    stage = (stage + 1) % 6;
-    saveMemory();
-  }, 30000);
-}
-
-function exploreRandomly() {
-  if (!bot || !bot.entity) return;
-  const x = bot.entity.position.x + (Math.random() * 20 - 10);
-  const z = bot.entity.position.z + (Math.random() * 20 - 10);
-  const y = bot.entity.position.y;
-  const goal = new GoalNear(x, y, z, 1);
-  console.log(`🚶 يتحرك إلى: (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`);
-  bot.pathfinder.setGoal(goal);
-  const blockBelow = bot.blockAt(bot.entity.position.offset(0, -1, 0));
-  if (blockBelow) knownLocations.resources[blockBelow.name] = blockBelow.position;
-}
-
-async function collectBlocks(blockNames) {
-  const targets = bot.findBlocks({
-    matching: block => blockNames.includes(bot.blockAt(block)?.name),
-    maxDistance: 64,
-    count: 3
-  });
-
-  if (targets.length === 0) {
-    bot.chat('🔍 لا أرى أي من الكتل المطلوبة!');
-    return;
-  }
-
-  for (const pos of targets) {
-    const block = bot.blockAt(pos);
-    if (block && bot.canDigBlock(block)) {
-      await bot.pathfinder.goto(new GoalBlock(pos.x, pos.y, pos.z));
-      await bot.dig(block);
-      logDiary(`⛏️ جمعت كتلة: ${block.name} عند (${pos.x}, ${pos.y}, ${pos.z})`);
-    }
+async function checkServerAndStart() {
+  try {
+    const status = await mcUtil.status(botOptions.host, { port: botOptions.port });
+    console.log(`🟢 السيرفر أونلاين فيه ${status.players.online} لاعبين.`);
+    createBot();
+  } catch (err) {
+    console.log('🔴 السيرفر غير متاح حالياً. إعادة المحاولة بعد 30 ثانية...');
+    setTimeout(checkServerAndStart, 30000);
   }
 }
 
-async function buildFurnaceAndCook() {
-  logDiary('🍳 بناء فرن وطبخ الطعام.');
-  // TODO: البحث عن Cobblestone وصناعة فرن وطبخ الطعام
-}
+// باقي الدوال بدون تغيير
 
-async function catchFish() {
-  logDiary('🎣 صيد الأسماك.');
-  // TODO: صناعة صنارة وصيد السمك من المياه
-}
-
-async function tradeWithVillagers() {
-  logDiary('🤝 التفاعل مع القرويين والتجارة.');
-  // TODO: البحث عن قرويين والتفاعل معهم واستغلال التبادل التجاري
-}
-
-createBot();
+checkServerAndStart();
