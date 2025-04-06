@@ -1,4 +1,4 @@
-// ✅ البوت النهائي مع كل المزايا + تطور تدريجي ذكي حتى قتل التنين + صناديق + دفاع عن النفس + احتراف + بناء بيت + نوم + نذر + تفاعل + تعدين ذكي + ذكاء بيئي + زراعة + بوابة Nether + إدارة موارد + دخول End + صيد + فرن + تجارة مع القرويين + سرير تلقائي + محادثة عربية ذكية (مئات الأوامر) + تعلم ذاتي + مذكرات + تطور لنيذر رايت + حماية من الأخطاء
+// ✅ البوت النهائي مع كل المزايا + تطور تدريجي ذكي حتى قتل التنين + صناديق + دفاع عن النفس + احتراف + بناء بيت + نوم + نذر + تفاعل + تعدين ذكي + ذكاء بيئي + زراعة + بوابة Nether + إدارة موارد + دخول End + صيد + فرن + تجارة مع القرويين + سرير تلقائي + محادثة عربية ذكية (مئات الأوامر) + تعلم ذاتي + مذكرات + تطور لنيذر رايت
 
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
@@ -17,7 +17,7 @@ const botOptions = {
   port: 13246,
   username: 'Wikko',
   auth: 'offline',
-  version: '1.19.4' // ← حدد إصدار الخادم بدقة لتفادي مشاكل VarInt
+  version: false
 };
 
 let bot;
@@ -60,6 +60,11 @@ function createBot() {
     evolveBot();
   });
 
+  bot.on('goal_reached', () => {
+    console.log('🎯 الهدف تم الوصول إليه! اختيار هدف جديد ...');
+    exploreRandomly();
+  });
+
   bot.on('kicked', (reason) => {
     console.log('🥾 Kicked:', reason);
     const match = reason.match(/wait (\d+) seconds?/i);
@@ -74,13 +79,7 @@ function createBot() {
     setTimeout(createBot, reconnectDelay);
   });
 
-  bot.on('error', (err) => {
-    if (err.name === 'PartialReadError') {
-      console.warn('⚠️ تم تجاهل PartialReadError لتفادي توقف البوت.');
-    } else {
-      console.log('❌ Error:', err);
-    }
-  });
+  bot.on('error', (err) => console.log('❌ Error:', err));
 
   bot.on('death', () => {
     deathCount++;
@@ -115,40 +114,36 @@ function evolveBot() {
   let stage = 0;
   setInterval(async () => {
     logDiary('المرحلة الحالية: ' + stage);
-    try {
-      switch (stage) {
-        case 0:
-          await collectBlocks(['oak_log', 'birch_log']);
-          await mineUnderground();
-          break;
-        case 1:
-          await craftTools();
-          break;
-        case 2:
-          await createBedIfNotFound();
-          await sleepIfNight();
-          break;
-        case 3:
-          exploreRandomly();
-          await buildChest();
-          await buildSimpleHouse();
-          await manageChest();
-          await autoFarm();
-          break;
-        case 4:
-          await prepareForEnderDragon();
-          break;
-        case 5:
-          await mineToDiamond();
-          await buildNetherPortalAndEnter();
-          await mineNetheriteAndUpgrade();
-          break;
-      }
-      stage = (stage + 1) % 6;
-      saveMemory();
-    } catch (err) {
-      console.warn('⚠️ خطأ أثناء تنفيذ المرحلة:', err.message);
+    switch (stage) {
+      case 0:
+        await collectBlocks(['oak_log', 'birch_log']);
+        await mineUnderground();
+        break;
+      case 1:
+        await craftTools();
+        break;
+      case 2:
+        await createBedIfNotFound();
+        await sleepIfNight();
+        break;
+      case 3:
+        exploreRandomly();
+        await buildChest();
+        await buildSimpleHouse();
+        await manageChest();
+        await autoFarm();
+        break;
+      case 4:
+        await prepareForEnderDragon();
+        break;
+      case 5:
+        await mineToDiamond();
+        await buildNetherPortalAndEnter();
+        await mineNetheriteAndUpgrade();
+        break;
     }
+    stage = (stage + 1) % 6;
+    saveMemory();
   }, 30000);
 }
 
@@ -158,6 +153,7 @@ function exploreRandomly() {
   const z = bot.entity.position.z + (Math.random() * 20 - 10);
   const y = bot.entity.position.y;
   const goal = new GoalNear(x, y, z, 1);
+  console.log(`🚶 يتحرك إلى: (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`);
   bot.pathfinder.setGoal(goal);
   const blockBelow = bot.blockAt(bot.entity.position.offset(0, -1, 0));
   if (blockBelow) knownLocations.resources[blockBelow.name] = blockBelow.position;
