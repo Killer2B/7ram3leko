@@ -6,7 +6,6 @@ const { GoalNear, GoalBlock } = goals;
 const { Vec3 } = require('vec3');
 const express = require('express');
 const fs = require('fs');
-const mcUtil = require('minecraft-server-util');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -119,15 +118,11 @@ function createBot() {
 
 async function checkServerAndStart() {
   try {
-    const status = await mcUtil.status(botOptions.host, { port: botOptions.port });
-    console.log(`🟢 السيرفر أونلاين فيه ${status.players.online} لاعبين.`);
     createBot();
   } catch (err) {
     console.log('🔴 السيرفر غير متاح حالياً. إعادة المحاولة بعد 30 ثانية...');
     setTimeout(checkServerAndStart, 30000);
   }
 }
-
-// باقي الدوال بدون تغيير
 
 checkServerAndStart();
