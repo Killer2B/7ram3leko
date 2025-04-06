@@ -1,172 +1,139 @@
-// ✅ البوت النهائي مع كل المزايا + تطور تدريجي ذكي حتى قتل التنين + صناديق + دفاع عن النفس + احتراف + بناء بيت + نوم + نذر + تفاعل + تعدين ذكي + ذكاء بيئي + زراعة + بوابة Nether + إدارة موارد + دخول End + صيد + فرن + تجارة مع القرويين + سرير تلقائي + محادثة عربية ذكية (مئات الأوامر) + تعلم ذاتي + مذكرات + تطور لنيذر رايت
-
 const mineflayer = require('mineflayer');
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const { GoalNear, GoalBlock } = goals;
-const { Vec3 } = require('vec3');
+const { pathfinder, Movements } = require('mineflayer-pathfinder');
+const autoeat = require('mineflayer-auto-eat');
+const armorManager = require('mineflayer-armor-manager');
 const express = require('express');
+const util = require('util');
+const ping = util.promisify(require('minecraft-server-util').ping);
 const fs = require('fs');
-const app = express();
-const PORT = process.env.PORT || 8080;
 
-app.get('/', (req, res) => res.send('🤖 Bot is alive'));
-app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
-
+// إعداد
 const botOptions = {
-  host: 'X234.aternos.me',
+  host: 'X234.aternos.me', // عدل حسب سيرفرك
   port: 13246,
-  username: 'Wikko',
+  username: 'Wikko', // ثابت
   auth: 'offline',
   version: false
 };
 
+const app = express();
+const PORT = process.env.PORT || 3000;
+app.get('/', (_, res) => res.send('Bot is alive'));
+app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
+
 let bot;
+let isConnecting = false;
 let reconnectDelay = 5000;
-let deathCount = 0;
-const knownLocations = { villages: [], resources: {} };
-const diaryFile = './diary.json';
-const memoryFile = './memory.json';
-const arabicCommands = JSON.parse(fs.readFileSync('./arabic_commands.json'));
 
-if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
-if (!fs.existsSync(diaryFile)) fs.writeFileSync(diaryFile, JSON.stringify([], null, 2));
-
-function logDiary(entry) {
-  const diary = JSON.parse(fs.readFileSync(diaryFile));
-  diary.push({ date: new Date().toISOString(), entry });
-  fs.writeFileSync(diaryFile, JSON.stringify(diary, null, 2));
+// ====== بيفحص السيرفر قبل الاتصال ======
+async function waitForServerReady() {
+  let online = false;
+  console.log('⏳ بنفحص إذا السيرفر شغال...');
+  while (!online) {
+    try {
+      const res = await ping(botOptions.host, botOptions.port);
+      if (res && res.players && res.players.online >= 0) {
+        online = true;
+        console.log('✅ السيرفر جاهز. بندخل...');
+      }
+    } catch {
+      console.log('❌ السيرفر مش جاهز... إعادة المحاولة خلال 10 ثواني');
+    }
+    if (!online) await new Promise(res => setTimeout(res, 10000));
+  }
 }
 
-function saveMemory() {
-  fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
-}
-
+// ====== إنشاء البوت ======
 function createBot() {
   bot = mineflayer.createBot(botOptions);
-  bot.loadPlugin(pathfinder);
 
-  bot.once('spawn', async () => {
-    console.log('✅ Bot has joined the server.');
-    reconnectDelay = 5000;
+  bot.loadPlugin(pathfinder);
+  bot.loadPlugin(autoeat);
+  bot.loadPlugin(armorManager);
+
+  bot.once('spawn', () => {
+    console.log('✅ البوت دخل السيرفر');
     const mcData = require('minecraft-data')(bot.version);
     const defaultMove = new Movements(bot, mcData);
     bot.pathfinder.setMovements(defaultMove);
+    bot.autoEat.options = {
+      priority: 'foodPoints',
+      startAt: 14,
+      bannedFood: [],
+    };
+    bot.autoEat.enable();
+    setTimeout(actHumanLike, 8000);
+    setInterval(() => jumpToAvoidAFK(), 60000);
+  });
 
-    setInterval(() => {
-      const yaw = Math.random() * Math.PI * 2;
-      bot.look(yaw, 0, true);
-    }, 10000);
-
-    evolveBot();
+  bot.on('death', () => {
+    bot.chat('أنا راجع من الموت!');
   });
 
   bot.on('kicked', (reason) => {
-    console.log('🥾 Kicked:', reason);
-    const match = reason.match(/wait (\d+) seconds?/i);
-    if (match) reconnectDelay = parseInt(match[1]) * 1000;
-    else reconnectDelay = Math.min(reconnectDelay + 2000, 15000);
-    console.log(`🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
-    setTimeout(createBot, reconnectDelay);
+    console.log('🦶 Kicked:', reason);
+    isConnecting = false;
+    const match = `${reason}`.match(/wait (\d+)/i);
+    reconnectDelay = match ? parseInt(match[1]) * 1000 : Math.min(reconnectDelay + 2000, 15000);
+    console.log(`🔁 محاولة إعادة الدخول خلال ${reconnectDelay / 1000} ثواني`);
+    setTimeout(checkServerAndStart, reconnectDelay);
   });
 
   bot.on('end', () => {
-    console.log(`🔌 Bot disconnected. Reconnecting in ${reconnectDelay / 1000}s...`);
-    setTimeout(createBot, reconnectDelay);
+    console.log('🔌 الاتصال انقطع');
+    isConnecting = false;
+    setTimeout(checkServerAndStart, reconnectDelay);
   });
 
-  bot.on('error', (err) => console.log('❌ Error:', err));
-
-  bot.on('death', () => {
-    deathCount++;
-    logDiary('مات البوت مرة أخرى. عدد مرات الموت: ' + deathCount);
-    if (deathCount >= 3) bot.chat('🧠 أتعلم كيف أعيش أفضل!');
-  });
-
-  bot.on('entityHurt', (entity) => {
-    if (entity.type === 'player' && entity.username !== bot.username) {
-      const dist = bot.entity.position.distanceTo(entity.position);
-      if (dist < 4) {
-        bot.chat('⚔️ لا تقترب مني!');
-        bot.attack(entity);
-      }
-    }
-  });
-
-  bot.on('chat', (username, message) => {
-    if (username === bot.username) return;
-    const command = message.trim().toLowerCase();
-    for (const key in arabicCommands) {
-      if (command.includes(key)) {
-        bot.chat(arabicCommands[key].response);
-        if (arabicCommands[key].action) arabicCommands[key].action(bot);
-        return;
-      }
-    }
+  bot.on('error', (err) => {
+    console.log('❌ خطأ:', err.message);
+    isConnecting = false;
+    setTimeout(checkServerAndStart, reconnectDelay);
   });
 }
 
-function evolveBot() {
-  let stage = 0;
-  setInterval(async () => {
-    logDiary('المرحلة الحالية: ' + stage);
-    switch (stage) {
-      case 0:
-        await collectBlocks(['oak_log', 'birch_log']);
-        await mineUnderground();
-        break;
-      case 1:
-        await craftTools();
-        break;
-      case 2:
-        await createBedIfNotFound();
-        await sleepIfNight();
-        break;
-      case 3:
-        exploreRandomly();
-        await buildChest();
-        await buildSimpleHouse();
-        await manageChest();
-        await autoFarm();
-        break;
-      case 4:
-        await prepareForEnderDragon();
-        break;
-      case 5:
-        await mineToDiamond();
-        await buildNetherPortalAndEnter();
-        await mineNetheriteAndUpgrade();
-        break;
-    }
-    stage = (stage + 1) % 6;
-    saveMemory();
-  }, 30000);
-}
-
-function exploreRandomly() {
+// ====== تصرف طبيعي ======
+function actHumanLike() {
   if (!bot || !bot.entity) return;
-  const x = bot.entity.position.x + (Math.random() * 20 - 10);
-  const z = bot.entity.position.z + (Math.random() * 20 - 10);
-  const y = bot.entity.position.y;
-  const goal = new GoalNear(x, y, z, 1);
-  bot.pathfinder.setGoal(goal);
-  const blockBelow = bot.blockAt(bot.entity.position.offset(0, -1, 0));
-  if (blockBelow) knownLocations.resources[blockBelow.name] = blockBelow.position;
+
+  const actions = [
+    () => bot.setControlState('forward', true),
+    () => bot.setControlState('back', true),
+    () => bot.setControlState('left', true),
+    () => bot.setControlState('right', true),
+    () => bot.look(
+      Math.random() * 2 * Math.PI - Math.PI,
+      Math.random() * Math.PI - Math.PI / 2,
+      true
+    ),
+    () => bot.setControlState('jump', true),
+    () => {}, // وقوف
+  ];
+
+  const action = actions[Math.floor(Math.random() * actions.length)];
+  action();
+
+  setTimeout(() => {
+    bot.clearControlStates();
+    if (Math.random() > 0.3) {
+      setTimeout(actHumanLike, Math.random() * 10000 + 3000);
+    }
+  }, Math.random() * 1500 + 500);
 }
 
-async function mineToDiamond() {
-  logDiary('⛏️ تعدين للدايموند والحديد.');
-  // TODO: استخدام أنماط تعدين فعالة + تحديد Y المناسب
+// ====== قفزة كل دقيقة ======
+function jumpToAvoidAFK() {
+  if (!bot || !bot.entity) return;
+  bot.setControlState('jump', true);
+  setTimeout(() => bot.setControlState('jump', false), 300);
 }
 
-async function buildNetherPortalAndEnter() {
-  logDiary('🟪 بناء بوابة نذر والدخول.');
-  // TODO: تجميع Obsidian و Flint and Steel ثم بناء البوابة والدخول
+// ====== تنفيذ البوت ======
+async function checkServerAndStart() {
+  if (isConnecting) return;
+  isConnecting = true;
+  await waitForServerReady();
+  createBot();
 }
 
-async function mineNetheriteAndUpgrade() {
-  logDiary('🔥 تعدين نذر رايت وترقية الأدوات.');
-  // TODO: البحث عن Ancient Debris وصهره لصناعة Netherite Tools
-}
-
-// باقي الوظائف كما هي دون تغيير
-createBot();
+checkServerAndStart();
