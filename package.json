@@ -4,10 +4,7 @@
   "description": "Minecraft bot with full AI, progression, and Arabic interaction",
   "main": "index.js",
   "scripts": {
-  "start": "node index.js",
-  "build": "npm install"
-}
-
+    "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
