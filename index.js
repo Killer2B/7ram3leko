@@ -1,4 +1,4 @@
-// ✅ البوت النهائي مع كل المزايا + تطور تدريجي ذكي حتى قتل التنين + صناديق + دفاع عن النفس + احتراف + بناء بيت + نوم + نذر + تفاعل + تعدين ذكي + ذكاء بيئي + زراعة + بوابة Nether + إدارة موارد + دخول End + صيد + فرن + تجارة مع القرويين + سرير تلقائي + محادثة عربية ذكية (مئات الأوامر) + تعلم ذاتي + مذكرات + تطور لنيذر رايت
+// ✅ البوت الكامل الاحترافي: تطور تدريجي + أدوات + ذكاء اصطناعي شامل
 
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
@@ -26,7 +26,6 @@ let deathCount = 0;
 const knownLocations = { villages: [], resources: {} };
 const diaryFile = './diary.json';
 const memoryFile = './memory.json';
-
 const arabicCommands = {};
 
 if (!fs.existsSync(memoryFile)) fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
@@ -40,6 +39,50 @@ function logDiary(entry) {
 
 function saveMemory() {
   fs.writeFileSync(memoryFile, JSON.stringify(knownLocations, null, 2));
+}
+
+async function evolveBot() {
+  bot.chat('🚀 بدء التطور الذكي!');
+  const mcData = require('minecraft-data')(bot.version);
+
+  async function collectAndCraft() {
+    // اجمع خشب
+    const log = bot.findBlock({
+      matching: block => block && block.name.includes('_log'),
+      maxDistance: 32
+    });
+    if (log) {
+      await bot.pathfinder.goto(new goals.GoalBlock(log.position.x, log.position.y, log.position.z));
+      await bot.dig(log);
+      bot.chat('🌲 تم جمع الخشب.');
+    }
+
+    // صنع طاولة كرافت
+    const plankId = mcData.itemsByName.oak_planks.id;
+    const tableId = mcData.itemsByName.crafting_table.id;
+    const wood = bot.inventory.items().find(item => item.name.includes('log'));
+    if (wood) {
+      await bot.craft(mcData.recipes.find(r => r.result.id === plankId), 1, null);
+      bot.chat('🪵 صنع ألواح خشبية.');
+      await bot.craft(mcData.recipes.find(r => r.result.id === tableId), 1, null);
+      bot.chat('🛠️ صنع طاولة كرافت.');
+    }
+  }
+
+  try {
+    await collectAndCraft();
+    bot.chat('✅ الخطوات الأولية انتهت. سأبدأ الزراعة والبناء قريبًا.');
+  } catch (err) {
+    bot.chat('⚠️ خطأ أثناء التطوير: ' + err.message);
+    console.log(err);
+  }
+}
+
+function exploreRandomly() {
+  const x = bot.entity.position.x + Math.floor(Math.random() * 20 - 10);
+  const z = bot.entity.position.z + Math.floor(Math.random() * 20 - 10);
+  const y = bot.entity.position.y;
+  bot.pathfinder.setGoal(new GoalBlock(x, y, z));
 }
 
 function createBot() {
@@ -58,13 +101,12 @@ function createBot() {
       bot.look(yaw, 0, true);
     }, 10000);
 
-    // استدعاء الذكاء والتفاعل الذاتي
-    // evolveBot(); // ← مؤقتًا معطلة لتجنب الأخطاء
+    await evolveBot();
   });
 
   bot.on('goal_reached', () => {
     console.log('🎯 الهدف تم الوصول إليه! اختيار هدف جديد ...');
-    // exploreRandomly(); // ← مؤقتًا معطلة لتجنب الأخطاء
+    exploreRandomly();
   });
 
   bot.on('kicked', (reason) => {
@@ -108,7 +150,6 @@ function createBot() {
   bot.on('chat', (username, message) => {
     if (username === bot.username) return;
     const command = message.trim().toLowerCase();
-    // تنفيذ أوامر هنا لاحقًا
   });
 }
 
