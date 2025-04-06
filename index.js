@@ -1,6 +1,6 @@
 const mineflayer = require('mineflayer'); const { pathfinder, Movements, goals } = require('mineflayer-pathfinder'); const { GoalBlock, GoalNear } = goals; const autoeat = require('mineflayer-auto-eat'); const armorManager = require('mineflayer-armor-manager'); const express = require('express'); const fs = require('fs');
 
-const app = express(); const PORT = process.env.PORT || 3000; app.get('/', (req, res) => res.send('Bot is alive')); app.listen(PORT, () => console.log(Web server running on port ${PORT}));
+const app = express(); const PORT = process.env.PORT || 3000; app.get('/', (req, res) => res.send('Bot is alive')); app.listen(PORT, () => console.log('Web server running on port ${PORT}'));
 
 const randomId = Math.floor(Math.random() * 10000); const botOptions = { host: 'X234.aternos.me', port: 13246, username: 'Wikko_' + randomId, auth: 'offline', version: false };
 
