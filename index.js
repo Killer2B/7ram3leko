@@ -12,8 +12,8 @@ app.get('/', (req, res) => res.send('🤖 Bot is alive'));
 app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 
 const botOptions = {
-  host: 'X234.aternos.me',
-  port: 13246,
+  host: 'X345.aternos.me',
+  port: 32510,
   username: 'Wikko',
   auth: 'offline',
   version: false
